@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GPS Location Tracker - Định vị chính xác</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #4CAF50, #45a049);
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
+    
+    .header h1 {
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+    
+    .header p {
+      opacity: 0.9;
+      font-size: 16px;
+    }
+    
+    .content {
+      padding: 30px;
+    }
+    
+    .button-group {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+    }
+    
+    button {
+      flex: 1;
+      min-width: 150px;
+      padding: 15px 20px;
+      font-size: 16px;
+      font-weight: 600;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(255, 107, 107, 0.3);
+    }
+    
+    .btn-secondary {
+      background: linear-gradient(135deg, #4ECDC4, #44A08D);
+      color: white;
+    }
+    
+    .btn-secondary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(78, 205, 196, 0.3);
+    }
+    
+    .btn-clear {
+      background: linear-gradient(135deg, #A8EDEA, #FED6E3);
+      color: #333;
+    }
+    
+    .btn-clear:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(168, 237, 234, 0.3);
+    }
+    
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+    
+    .info-card {
+      background: #f8f9fa;
+      border-radius: 15px;
+      padding: 25px;
+      margin-bottom: 20px;
+      border-left: 5px solid #4CAF50;
+    }
+    
+    .status {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .coordinates {
+      background: white;
+      padding: 15px;
+      border-radius: 10px;
+      font-family: 'Courier New', monospace;
+      font-size: 16px;
+      border: 2px solid #e0e0e0;
+      margin: 10px 0;
+    }
+    
+    .address {
+      background: #e8f5e8;
+      padding: 15px;
+      border-radius: 10px;
+      font-size: 16px;
+      line-height: 1.5;
+      border: 2px solid #4CAF50;
+      margin: 10px 0;
+    }
+    
+    .accuracy {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 10px 0;
+      padding: 10px;
+      background: white;
+      border-radius: 8px;
+    }
+    
+    .accuracy-good { color: #4CAF50; }
+    .accuracy-medium { color: #FF9800; }
+    .accuracy-poor { color: #f44336; }
+    
+    .spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #4CAF50;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .map-links {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 15px;
+    }
+    
+    .map-link {
+      padding: 8px 15px;
+      background: #2196F3;
+      color: white;
+      text-decoration: none;
+      border-radius: 20px;
+      font-size: 14px;
+      transition: all 0.3s ease;
+    }
+    
+    .map-link:hover {
+      background: #1976D2;
+      transform: translateY(-1px);
+    }
+    
+    .error {
+      background: #ffebee;
+      color: #c62828;
+      border-left-color: #f44336;
+    }
+    
+    .loading {
+      background: #fff3e0;
+      color: #ef6c00;
+      border-left-color: #ff9800;
+    }
+    
+    .success {
+      background: #e8f5e8;
+      color: #2e7d32;
+      border-left-color: #4CAF50;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🛰️ GPS Location Tracker</h1>
+      <p>Định vị chính xác bằng GPS với độ chính xác cao</p>
+    </div>
+    
+    <div class="content">
+      <div class="button-group">
+        <button class="btn-primary" onclick="getHighAccuracyLocation()" id="btnGetLocation">
+          🎯 Lấy vị trí GPS
+        </button>
+        <button class="btn-secondary" onclick="watchLocation()" id="btnWatch">
+          📡 Theo dõi liên tục
+        </button>
+        <button class="btn-clear" onclick="clearResults()" id="btnClear">
+          🗑️ Xóa kết quả
+        </button>
+      </div>
+      
+      <div class="info-card" id="results">
+        <div class="status">
+          🔍 Sẵn sàng lấy vị trí GPS chính xác
+        </div>
+        <p>Nhấn nút "Lấy vị trí GPS" để bắt đầu định vị với độ chính xác cao.</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let watchId = null;
+    let isWatching = false;
+
+    // Cấu hình GPS với độ chính xác cao nhất
+    const highAccuracyOptions = {
+      enableHighAccuracy: true,  // Bắt buộc dùng GPS
+      timeout: 60000,           // Chờ tối đa 60 giây
+      maximumAge: 0             // Không dùng cache, luôn lấy vị trí mới
+    };
+
+    // Cấu hình cho theo dõi liên tục
+    const watchOptions = {
+      enableHighAccuracy: true,
+      timeout: 30000,
+      maximumAge: 10000  // Cache 10 giây cho watch mode
+    };
+
+    function updateStatus(message, type = 'info', showSpinner = false) {
+      const results = document.getElementById('results');
+      const statusDiv = results.querySelector('.status');
+      
+      // Xóa các class cũ
+      results.classList.remove('error', 'loading', 'success');
+      
+      // Thêm class mới
+      if (type === 'error') results.classList.add('error');
+      if (type === 'loading') results.classList.add('loading');
+      if (type === 'success') results.classList.add('success');
+      
+      // Cập nhật nội dung
+      statusDiv.innerHTML = showSpinner ? 
+        `<span class="spinner"></span> ${message}` : 
+        message;
+    }
+
+    function displayLocationInfo(position) {
+      const { latitude, longitude, accuracy, altitude, heading, speed } = position.coords;
+      const timestamp = new Date(position.timestamp);
+      
+      let accuracyClass = 'accuracy-poor';
+      let accuracyText = 'Kém';
+      let accuracyIcon = '🔴';
+      
+      if (accuracy <= 10) {
+        accuracyClass = 'accuracy-good';
+        accuracyText = 'Rất tốt';
+        accuracyIcon = '🟢';
+      } else if (accuracy <= 50) {
+        accuracyClass = 'accuracy-medium';
+        accuracyText = 'Tốt';
+        accuracyIcon = '🟡';
+      }
+      
+      const resultsDiv = document.getElementById('results');
+      resultsDiv.innerHTML = `
+        <div class="status">
+          🎯 Đã lấy được vị trí GPS chính xác!
+        </div>
+        
+        <div class="coordinates">
+          <strong>📍 Tọa độ:</strong><br>
+          Vĩ độ: ${latitude.toFixed(8)}<br>
+          Kinh độ: ${longitude.toFixed(8)}
+        </div>
+        
+        <div class="accuracy ${accuracyClass}">
+          ${accuracyIcon} <strong>Độ chính xác:</strong> ${accuracy.toFixed(1)} mét (${accuracyText})
+        </div>
+        
+        ${altitude ? `<div class="coordinates"><strong>🏔️ Độ cao:</strong> ${altitude.toFixed(1)} mét</div>` : ''}
+        ${speed ? `<div class="coordinates"><strong>🚀 Tốc độ:</strong> ${(speed * 3.6).toFixed(1)} km/h</div>` : ''}
+        ${heading ? `<div class="coordinates"><strong>🧭 Hướng:</strong> ${heading.toFixed(1)}°</div>` : ''}
+        
+        <div class="coordinates">
+          <strong>🕐 Thời gian:</strong> ${timestamp.toLocaleString('vi-VN')}
+        </div>
+        
+        <div class="map-links">
+          <a href="https://www.google.com/maps?q=${latitude},${longitude}" target="_blank" class="map-link">
+            🗺️ Google Maps
+          </a>
+          <a href="https://maps.apple.com/?q=${latitude},${longitude}" target="_blank" class="map-link">
+            🍎 Apple Maps  
+          </a>
+          <a href="https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}&zoom=18" target="_blank" class="map-link">
+            🌍 OpenStreetMap
+          </a>
+        </div>
+      `;
+      
+      // Thử reverse geocoding để lấy địa chỉ
+      reverseGeocode(latitude, longitude);
+    }
+
+    async function reverseGeocode(lat, lng) {
+      try {
+        // Sử dụng Nominatim API (miễn phí, không cần API key)
+        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1&accept-language=vi`);
+        const data = await response.json();
+        
+        if (data && data.display_name) {
+          const addressDiv = document.createElement('div');
+          addressDiv.className = 'address';
+          addressDiv.innerHTML = `<strong>📮 Địa chỉ:</strong><br>${data.display_name}`;
+          
+          const resultsDiv = document.getElementById('results');
+          const mapLinks = resultsDiv.querySelector('.map-links');
+          resultsDiv.insertBefore(addressDiv, mapLinks);
+        }
+      } catch (error) {
+        console.log('Không thể lấy địa chỉ:', error);
+        // Không hiển thị lỗi cho người dùng vì đây chỉ là tính năng phụ
+      }
+    }
+
+    function handleLocationError(error) {
+      let message = '';
+      let icon = '❌';
+      
+      switch (error.code) {
+        case error.PERMISSION_DENIED:
+          message = "Bạn đã từ chối quyền truy cập vị trі. Vui lòng cho phép truy cập GPS trong cài đặt trình duyệt.";
+          icon = '🚫';
+          break;
+        case error.POSITION_UNAVAILABLE:
+          message = "Không thể xác định vị trí. Hãy kiểm tra kết nối GPS và thử lại.";
+          icon = '📡';
+          break;
+        case error.TIMEOUT:
+          message = "Hết thời gian chờ lấy vị trí GPS. Hãy thử lại hoặc di chuyển ra ngoài trời.";
+          icon = '⏰';
+          break;
+        default:
+          message = "Lỗi không xác định khi lấy vị trí GPS.";
+          break;
+      }
+      
+      const resultsDiv = document.getElementById('results');
+      resultsDiv.innerHTML = `
+        <div class="status">
+          ${icon} Lỗi định vị GPS
+        </div>
+        <p>${message}</p>
+        <div style="margin-top: 15px; padding: 15px; background: #fff3cd; border-radius: 8px; color: #856404;">
+          <strong>💡 Gợi ý:</strong>
+          <ul style="margin: 10px 0; padding-left: 20px;">
+            <li>Cho phép truy cập vị trí trong trình duyệt</li>
+            <li>Di chuyển ra ngoài trời để tín hiệu GPS tốt hơn</li>
+            <li>Tắt WiFi để buộc dùng GPS thay vì WiFi positioning</li>
+            <li>Chờ vài phút để GPS "khởi động"</li>
+          </ul>
+        </div>
+      `;
+      
+      updateStatus(`${icon} Lỗi: ${message}`, 'error');
+      enableButtons();
+    }
+
+    function getHighAccuracyLocation() {
+      if (!navigator.geolocation) {
+        updateStatus('❌ Trình duyệt không hỗ trợ GPS', 'error');
+        return;
+      }
+      
+      updateStatus('🛰️ Đang kết nối GPS với độ chính xác cao...', 'loading', true);
+      disableButtons();
+      
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          displayLocationInfo(position);
+          updateStatus('🎯 Đã lấy được vị trí GPS!', 'success');
+          enableButtons();
+        },
+        handleLocationError,
+        highAccuracyOptions
+      );
+    }
+
+    function watchLocation() {
+      if (!navigator.geolocation) {
+        updateStatus('❌ Trình duyệt không hỗ trợ GPS', 'error');
+        return;
+      }
+      
+      if (isWatching) {
+        // Dừng theo dõi
+        navigator.geolocation.clearWatch(watchId);
+        isWatching = false;
+        document.getElementById('btnWatch').innerHTML = '📡 Theo dõi liên tục';
+        updateStatus('⏹️ Đã dừng theo dõi vị trí', 'info');
+        enableButtons();
+        return;
+      }
+      
+      // Bắt đầu theo dõi
+      updateStatus('📡 Đang theo dõi vị trí liên tục...', 'loading', true);
+      isWatching = true;
+      document.getElementById('btnWatch').innerHTML = '⏹️ Dừng theo dõi';
+      
+      watchId = navigator.geolocation.watchPosition(
+        (position) => {
+          displayLocationInfo(position);
+          updateStatus('📡 Đang theo dõi vị trí... (Nhấn "Dừng theo dõi" để ngừng)', 'success');
+        },
+        handleLocationError,
+        watchOptions
+      );
+    }
+
+    function clearResults() {
+      if (isWatching) {
+        navigator.geolocation.clearWatch(watchId);
+        isWatching = false;
+        document.getElementById('btnWatch').innerHTML = '📡 Theo dõi liên tục';
+      }
+      
+      const resultsDiv = document.getElementById('results');
+      resultsDiv.innerHTML = `
+        <div class="status">
+          🔍 Sẵn sàng lấy vị trí GPS chính xác
+        </div>
+        <p>Nhấn nút "Lấy vị trí GPS" để bắt đầu định vị với độ chính xác cao.</p>
+      `;
+      resultsDiv.className = 'info-card';
+      enableButtons();
+    }
+
+    function disableButtons() {
+      document.getElementById('btnGetLocation').disabled = true;
+    }
+
+    function enableButtons() {
+      document.getElementById('btnGetLocation').disabled = false;
+    }
+
+    // Kiểm tra hỗ trợ GPS khi tải trang
+    document.addEventListener('DOMContentLoaded', function() {
+      if (!navigator.geolocation) {
+        updateStatus('❌ Trình duyệt này không hỗ trợ GPS', 'error');
+        document.getElementById('btnGetLocation').disabled = true;
+        document.getElementById('btnWatch').disabled = true;
+      }
+    });
+  </script>
+</body>
+</html>
